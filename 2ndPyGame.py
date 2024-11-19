@@ -1,64 +1,91 @@
 import pygame
 import os
 import random
+import pygame.freetype
+
 pygame.font.init()
 pygame.mixer.init()
+pygame.freetype.init()
 
-#screen size
+# screen size
 WIDTH, HEIGHT = 1920, 1020
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 
-#title
+# title
 pygame.display.set_caption("GAME")
 
-#fps
+# fps
 FPS = 60
 
-#velocity / movement
+# velocity / movement
 VEL = 10
 
-#screen color / sky
+# collision sound effect
+damage_sfx = pygame.mixer.Sound("damage_sound.wav")
+
+#point sound effect
+point_sfx = pygame.mixer.Sound("point_sound.mp3")
+
+# screen color / sky
 SKY = (100, 255, 255)
-GRASS_GREEN = (34, 177, 76) #grass color
+GRASS_GREEN = (34, 177, 76)  # grass color
 
-#player dimensions
+# player dimensions
 PLAYER_HEIGHT = 100
-PLAYER_WIDTH = 150          
+PLAYER_WIDTH = 150
 
-#enemy dimensions
-ENEMY_HEIGHT = 80
-ENEMY_WIDTH = 90 
+# enemy dimensions
+ENEMY_HEIGHT = 60
+ENEMY_WIDTH = 70
 
-#jumping
+#point dimensions
+POINT_HEIGHT = 60
+POINT_WIDTH = 70
+
+# jumping
 jumping = False
 jumpVel = 10
 
-#for facing left
+# for facing left
 facing_left = False
 
-#text font
-HEALTH_FONT = pygame.font.SysFont('comicsans', 40)
+# text font
+HEALTH_FONT = pygame.font.Font("PixelifySans.ttf", 40)
+MAIN_MENU_FONT = pygame.font.Font("PixelifySans.ttf", 50)
+SCORE_FONT = pygame.font.Font("PixelifySans.ttf", 40)
 
-#invinc after collide so health doesnt drop
-
-timer_interval = 1500 # 1.5 seconds
+# invincibility after collide so health doesn't drop
+timer_interval = 450 # 0.4 seconds
+#score_timer_interval = 450
 timer_event_id = pygame.USEREVENT + 1
 global player_health
+global score
 
-
-#player image facing right
-player_image_right_path = pygame.image.load(os.path.join('PixelCat_right.png')) #loading from path
+# player image facing right
+player_image_right_path = pygame.image.load(os.path.join('PixelCat_right.png'))  # loading from path
 player_image_right = pygame.transform.scale(player_image_right_path, (PLAYER_WIDTH, PLAYER_HEIGHT))
-#player image facing left
+
+# player image facing left
 player_image_left_path = pygame.image.load(os.path.join('PixelCat_left.png'))
 player_image_left = pygame.transform.scale(player_image_left_path, (PLAYER_WIDTH, PLAYER_HEIGHT))
-#background
+
+# background
 background_path = pygame.image.load(os.path.join('Background.png')).convert()
 BG = pygame.transform.scale(background_path, (WIDTH, HEIGHT))
-#enemy cat
-neon_enemy_path = pygame.image.load(os.path.join('neon_enemy.png'))    
-neon_enemy = pygame.transform.scale(neon_enemy_path,(ENEMY_WIDTH, ENEMY_HEIGHT))
+
+# enemy star
+neon_enemy_path = pygame.image.load(os.path.join('neon_enemy.png'))
+neon_enemy = pygame.transform.scale(neon_enemy_path, (ENEMY_WIDTH, ENEMY_HEIGHT))
+
+#point star
+point_star_path = pygame.image.load(os.path.join('point_star.png'))
+point_star = pygame.transform.scale(point_star_path, (POINT_WIDTH, POINT_HEIGHT))
+
+#damage taken cat
+player_dmg_image_path = pygame.image.load(os.path.join('PixelCat_right_damage.png'))
+player_dmg_image = pygame.transform.scale(player_dmg_image_path, (PLAYER_WIDTH, PLAYER_HEIGHT))
+
 
 class Enemy:
     def __init__(self):
@@ -66,29 +93,44 @@ class Enemy:
         self.y = random.randint(0, HEIGHT - PLAYER_HEIGHT)
         self.vel = random.randint(5, 10)
 
-
     def move(self):
         self.x -= self.vel
-    
+
     def draw(self):
         WIN.blit(neon_enemy, (self.x, self.y))
 
-def drawWindow(Player, floor, enemies):   #method for drawing window and coloring
-    WIN.blit(BG, (0,0))
-    player_health_text = HEALTH_FONT.render("Health: " + str(player_health), 1 , (232, 113, 39))
+class pointStar:
+    def __init__(self):
+        self.x = WIDTH
+        self.y = random.randint(0, HEIGHT - PLAYER_HEIGHT)
+        self.vel = random.randint(5, 10)
+
+    def move(self):
+        self.x -= self.vel
+
+    def draw(self):
+        WIN.blit(point_star, (self.x, self.y))
+
+def drawWindow(Player, floor, enemies, points):
+    WIN.blit(BG, (0, 0))
+    player_health_text = HEALTH_FONT.render("Health: " + str(player_health), True, (232, 113, 39))
+    score_text = SCORE_FONT.render("Score: " + str(score), True, (232, 113, 39))
     pygame.draw.rect(WIN, GRASS_GREEN, floor)
 
     if facing_left:
         WIN.blit(player_image_left, (Player.x, Player.y))
     else:
         WIN.blit(player_image_right, (Player.x, Player.y))
-    WIN.blit(player_health_text, (850,10))
+    WIN.blit(player_health_text, (850, 10))
+    WIN.blit(score_text, (70, 10))
 
     for enemy in enemies:
         enemy.draw()
 
-    pygame.display.update()
+    for point in points:
+        point.draw()
 
+    pygame.display.update()
 
 def collision(player, enemies, player_health):
     for enemy in enemies:
@@ -97,7 +139,15 @@ def collision(player, enemies, player_health):
             return True
     return False
 
-def movement(keys_pressed, Player, jumping, floor, jumpVel):   #for moving character
+def scoreUpdate(player, points, player_health):
+    for point in points:
+        point_rect = pygame.Rect(point.x, point.y, POINT_WIDTH, POINT_WIDTH)
+        if player.colliderect(point_rect) and player_health > 0:
+            points.remove(point)
+            return True
+    return False
+
+def movement(keys_pressed, Player, jumping, floor, jumpVel):
     global facing_left
     if keys_pressed[pygame.K_a] and Player.x - VEL > 0:  # left
         Player.x -= VEL
@@ -106,8 +156,7 @@ def movement(keys_pressed, Player, jumping, floor, jumpVel):   #for moving chara
         Player.x += VEL
         facing_left = False
 
-# jumping mechanism
-
+    # jumping mechanism
     if keys_pressed[pygame.K_SPACE] and Player.y - VEL > 0:
         jumping = True
 
@@ -119,65 +168,135 @@ def movement(keys_pressed, Player, jumping, floor, jumpVel):   #for moving chara
         if Player.y + Player.height >= HEIGHT - floor.height:
             jumping = False
             Player.y = HEIGHT - floor.height - Player.height
-           
-            
-
     else:
         # Gravity effect when not jumping
         if Player.y + Player.height < HEIGHT - floor.height:
             Player.y += VEL
-    
 
+def options():
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+        WIN.fill((0, 0, 0))
+        options_text = MAIN_MENU_FONT.render("Options", True, (255, 255, 255))
+        WIN.blit(options_text, (WIDTH//2 - options_text.get_width()//2, HEIGHT//2 - options_text.get_height()//2))
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+click = False
+clock = pygame.time.Clock()
+
+def main_menu():
+    global click
+    while True:
+        WIN.fill((0, 0, 0))
+        menu_text = MAIN_MENU_FONT.render("FlyAway Cat Main Menu", True, (255, 255, 255))
+        WIN.blit(menu_text, (WIDTH//2 - menu_text.get_width()//2, 100))
+
+        mx, my = pygame.mouse.get_pos()
+
+        button_1 = pygame.Rect(WIDTH//2 - 100, 300, 200, 50)
+        button_2 = pygame.Rect(WIDTH//2 - 100, 400, 200, 50)
+        
+        if button_1.collidepoint((mx, my)):
+            if click:
+                main()
+        if button_2.collidepoint((mx, my)):
+            if click:
+                options()
+
+        pygame.draw.rect(WIN, (255, 0, 0), button_1)
+        pygame.draw.rect(WIN, (0, 255, 0), button_2)
+
+        play_text = MAIN_MENU_FONT.render("Play", True, (255, 255, 255))
+        options_text = MAIN_MENU_FONT.render("Options", True, (255, 255, 255))
+        
+        WIN.blit(play_text, (button_1.x + (button_1.width - play_text.get_width()) // 2, button_1.y + (button_1.height - play_text.get_height()) // 2))  # Corrected line
+        WIN.blit(options_text, (button_2.x + (button_2.width - options_text.get_width()) // 2, button_2.y + (button_2.height - options_text.get_height()) // 2))  # Corrected line
+
+        click = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    click = True
+
+        pygame.display.update()
+        clock.tick(FPS)
+
+#def gameOver():
+    
 
 def main():
-
-    Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT) # player base
-    floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50) # floor base
+    Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
+    floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)  # floor base
 
     enemies = []
+    points = []
     global player_health
+    global score
     player_health = 3
-    
+    score = 0
+
     player_visible = True
 
-    clock = pygame.time.Clock()
     run = True
     while run and player_health > 0:
         clock.tick(FPS)
-        for event in pygame.event.get():     # this whole block runs game in 60 fps and allows you to exit game
+        for event in pygame.event.get():  # this whole block runs game in 60 fps and allows you to exit game
             if event.type == pygame.QUIT:
                 run = False
                 pygame.quit()
             elif event.type == timer_event_id:
                 player_visible = True
-                pygame.time.   set_timer(timer_event_id, 0)
-        
-        keys_pressed = pygame.key.get_pressed() # to allow key binding
-        movement(keys_pressed, Player, jumping, floor, jumpVel)  #calling on movement
+                pygame.time.set_timer(timer_event_id, 0)
+
+        keys_pressed = pygame.key.get_pressed()  # to allow key binding
+        movement(keys_pressed, Player, jumping, floor, jumpVel)  # calling on movement
 
         if random.randint(0, 100) < 5:  # Adjust the probability to control how often new enemies are created
             enemies.append(Enemy())
+
+        if random.randint(0, 200) < 1:  # Adjust the probability to control how often new enemies are created
+            points.append(pointStar())
 
         # Move and draw enemies
         for enemy in enemies:
             enemy.move()
 
+        for point in points:
+            point.move()
+
         # Check collision with enemies
         if collision(Player, enemies, player_health) and player_visible:
             player_health -= 1
             player_visible = False
-            pygame.time.set_timer(timer_event_id, timer_interval) 
+            pygame.time.set_timer(timer_event_id, timer_interval)
+            if (player_health >= 1):
+                damage_sfx.play()
+
+        if scoreUpdate(Player, points, player_health) and player_visible:
+            score += 1
+            point_sfx.play()
 
         # Remove off-screen enemies
-        enemies = [enemy for enemy in enemies if enemy.x   + ENEMY_WIDTH > 0]
+        enemies = [enemy for enemy in enemies if enemy.x + ENEMY_WIDTH > 0]
+
+        points = [point for point in points if point.x + POINT_WIDTH > 0]
 
         # Check player collision with floor
-        if Player.colliderect(floor): 
+        if Player.colliderect(floor):
             Player.y = floor.y - Player.height
 
-        drawWindow(Player, floor, enemies)
-
-main()
+        drawWindow(Player, floor, enemies, points)
 
 if __name__ == "__main__":
-    main()
+    main_menu()
