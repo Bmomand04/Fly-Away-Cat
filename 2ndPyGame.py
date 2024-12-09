@@ -3,6 +3,7 @@ import os
 import random
 import pygame.freetype
 
+#-----------------------------VARIABLES, ASSETS, AND SET UP-------------------------------------------------
 pygame.font.init()
 pygame.mixer.init()
 pygame.freetype.init()
@@ -59,8 +60,12 @@ SCORE_FONT = pygame.font.Font("PixelifySans.ttf", 40)
 timer_interval = 450 # 0.4 seconds
 #score_timer_interval = 450
 timer_event_id = pygame.USEREVENT + 1
-global player_health
-global score
+
+#global player_health
+#global score
+
+#background music
+pygame.mixer.music.load("bg_music.mp3")
 
 # player image facing right
 player_image_right_path = pygame.image.load(os.path.join('PixelCat_right.png'))  # loading from path
@@ -86,6 +91,7 @@ point_star = pygame.transform.scale(point_star_path, (POINT_WIDTH, POINT_HEIGHT)
 player_dmg_image_path = pygame.image.load(os.path.join('PixelCat_right_damage.png'))
 player_dmg_image = pygame.transform.scale(player_dmg_image_path, (PLAYER_WIDTH, PLAYER_HEIGHT))
 
+# ---------------------------------------------CLASSES AND GAME FUNCTIONS-----------------------------------------------------------------
 
 class Enemy:
     def __init__(self):
@@ -121,8 +127,8 @@ def drawWindow(Player, floor, enemies, points):
         WIN.blit(player_image_left, (Player.x, Player.y))
     else:
         WIN.blit(player_image_right, (Player.x, Player.y))
-    WIN.blit(player_health_text, (850, 10))
-    WIN.blit(score_text, (70, 10))
+    WIN.blit(player_health_text, (70, 10))
+    WIN.blit(score_text, (850, 10))
 
     for enemy in enemies:
         enemy.draw()
@@ -173,6 +179,9 @@ def movement(keys_pressed, Player, jumping, floor, jumpVel):
         if Player.y + Player.height < HEIGHT - floor.height:
             Player.y += VEL
 
+# ------------------------------------------MAIN MENU AND OPTIONS LOOP---------------------------------------------------------------
+#global click
+
 def options():
     running = True
     while running:
@@ -183,24 +192,38 @@ def options():
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
-        WIN.fill((0, 0, 0))
-        options_text = MAIN_MENU_FONT.render("Options", True, (255, 255, 255))
-        WIN.blit(options_text, (WIDTH//2 - options_text.get_width()//2, HEIGHT//2 - options_text.get_height()//2))
+        WIN.fill((176, 245, 244))
+        mute_button = pygame.Rect(WIDTH//2 - 100, 300, 200, 50)
+        pygame.draw.rect(WIN, (235, 195, 52), mute_button)
+        mute_text = MAIN_MENU_FONT.render("Mute", True, (255, 255, 255))
+        WIN.blit(mute_text, (mute_button.x + (mute_button.width - mute_text.get_width()) // 2, mute_button.y + 
+                             (mute_button.height - mute_text.get_height()) // 2))  # Corrected line
 
         pygame.display.update()
         clock.tick(FPS)
+        
 
-click = False
+#click = False
 clock = pygame.time.Clock()
 
-def main_menu():
-    global click
-    while True:
-        WIN.fill((0, 0, 0))
-        menu_text = MAIN_MENU_FONT.render("FlyAway Cat Main Menu", True, (255, 255, 255))
-        WIN.blit(menu_text, (WIDTH//2 - menu_text.get_width()//2, 100))
+#def mute_music(mute_button, mx, my, mute):
+    #mute = False
+    #pygame.mixer.music.play(-1)
+    #if mute_button.collidepoint((mx, my)):
+            #if click:
+              #  mute = True
+              #  pygame.mixer.music.pause()
 
+
+
+def main_menu():
+    while True:
+        pygame.mixer.music.pause()
+        WIN.fill((176, 245, 244))
+        menu_text = MAIN_MENU_FONT.render("Fly-Away Cat Main Menu", True, (255, 255, 255))
+        WIN.blit(menu_text, (WIDTH//2 - menu_text.get_width()//2, 100))
         mx, my = pygame.mouse.get_pos()
+
 
         button_1 = pygame.Rect(WIDTH//2 - 100, 300, 200, 50)
         button_2 = pygame.Rect(WIDTH//2 - 100, 400, 200, 50)
@@ -234,8 +257,10 @@ def main_menu():
 
 #def gameOver():
     
+# ----------------------------------------------MAIN GAME FUNCTION----------------------------------------------------------------------------
 
 def main():
+    pygame.mixer.music.play(-1)
     Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
     floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)  # floor base
 
