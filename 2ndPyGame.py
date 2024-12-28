@@ -3,7 +3,6 @@ import os
 import random
 import pygame.freetype
 
-
 #-----------------------------VARIABLES, ASSETS, AND SET UP-------------------------------------------------
 pygame.font.init()
 pygame.mixer.init()
@@ -16,7 +15,6 @@ pygame.init()
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 info = pygame.display.Info()
 screen_width, screen_height = info.current_w, info.current_h
-
 WIN = pygame.display.set_mode((screen_width - 10, screen_height - 50), pygame.RESIZABLE)
 
 # title
@@ -72,7 +70,6 @@ timer_event_id = pygame.USEREVENT + 1
 
 #background music
 pygame.mixer.music.load("bg_music.mp3")
-pygame.mixer.music.play(-1)
 
 # player image facing right
 player_image_right_path = pygame.image.load(os.path.join('PixelCat_right.png'))  # loading from path
@@ -200,7 +197,7 @@ def mute_music():
 clock = pygame.time.Clock()
 
 def main_menu():
-    #global muted
+    pygame.mixer_music.pause()
     click = False
     while True:
         WIN.fill((176, 245, 244))
@@ -248,11 +245,11 @@ def main():
     global score
     player_health = 3
     score = 0 
+    pygame.mixer.music.play(-1)
 
     pygame.mixer.music.set_volume(0.0 if muted else 1.0)
     Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
     floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)  # floor base
-
 
     player_visible = True
 
@@ -309,8 +306,5 @@ def main():
         if player_health == 0:
             draw_score()
             
-            
-            
-
 if __name__ == "__main__":
     main_menu()
