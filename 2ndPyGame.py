@@ -27,7 +27,7 @@ FPS = 60
 VEL = 10
 
 # collision sound effect
-damage_sfx = pygame.mixer.Sound("damage_sound.wav")
+damage_sfx = pygame.mixer.Sound("damage_sound.mp3")
 
 #point sound effect
 point_sfx = pygame.mixer.Sound("point_sound.mp3")
