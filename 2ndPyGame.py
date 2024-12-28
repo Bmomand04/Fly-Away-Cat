@@ -3,6 +3,7 @@ import os
 import random
 import pygame.freetype
 
+
 #-----------------------------VARIABLES, ASSETS, AND SET UP-------------------------------------------------
 pygame.font.init()
 pygame.mixer.init()
@@ -11,10 +12,15 @@ pygame.freetype.init()
 # screen size
 WIDTH, HEIGHT = 1920, 1020
 
-WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.init()
+os.environ['SDL_VIDEO_CENTERED'] = '1'
+info = pygame.display.Info()
+screen_width, screen_height = info.current_w, info.current_h
+
+WIN = pygame.display.set_mode((screen_width - 10, screen_height - 50), pygame.RESIZABLE)
 
 # title
-pygame.display.set_caption("GAME")
+pygame.display.set_caption("Fly-Away Cat!")
 
 # fps
 FPS = 60
@@ -51,21 +57,22 @@ jumpVel = 10
 # for facing left
 facing_left = False
 
+#mute
+muted = False
+
 # text font
-HEALTH_FONT = pygame.font.Font("PixelifySans.ttf", 40)
+HEALTH_SCORE_FONT = pygame.font.Font("PixelifySans.ttf", 40)
 MAIN_MENU_FONT = pygame.font.Font("PixelifySans.ttf", 50)
-SCORE_FONT = pygame.font.Font("PixelifySans.ttf", 40)
+GAME_OVER_FONT = pygame.font.Font("PixelifySans.ttf", 70)
 
 # invincibility after collide so health doesn't drop
 timer_interval = 450 # 0.4 seconds
 #score_timer_interval = 450
 timer_event_id = pygame.USEREVENT + 1
 
-#global player_health
-#global score
-
 #background music
 pygame.mixer.music.load("bg_music.mp3")
+pygame.mixer.music.play(-1)
 
 # player image facing right
 player_image_right_path = pygame.image.load(os.path.join('PixelCat_right.png'))  # loading from path
@@ -86,10 +93,6 @@ neon_enemy = pygame.transform.scale(neon_enemy_path, (ENEMY_WIDTH, ENEMY_HEIGHT)
 #point star
 point_star_path = pygame.image.load(os.path.join('point_star.png'))
 point_star = pygame.transform.scale(point_star_path, (POINT_WIDTH, POINT_HEIGHT))
-
-#damage taken cat
-player_dmg_image_path = pygame.image.load(os.path.join('PixelCat_right_damage.png'))
-player_dmg_image = pygame.transform.scale(player_dmg_image_path, (PLAYER_WIDTH, PLAYER_HEIGHT))
 
 # ---------------------------------------------CLASSES AND GAME FUNCTIONS-----------------------------------------------------------------
 
@@ -119,8 +122,8 @@ class pointStar:
 
 def drawWindow(Player, floor, enemies, points):
     WIN.blit(BG, (0, 0))
-    player_health_text = HEALTH_FONT.render("Health: " + str(player_health), True, (232, 113, 39))
-    score_text = SCORE_FONT.render("Score: " + str(score), True, (232, 113, 39))
+    player_health_text = HEALTH_SCORE_FONT.render("Health: " + str(player_health), True, (232, 113, 39))
+    score_text = HEALTH_SCORE_FONT.render("Score: " + str(score), True, (232, 113, 39))
     pygame.draw.rect(WIN, GRASS_GREEN, floor)
 
     if facing_left:
@@ -153,6 +156,12 @@ def scoreUpdate(player, points, player_health):
             return True
     return False
 
+def draw_score():
+    draw_text = GAME_OVER_FONT.render("Game Over! Score: " + str(score), True, (232, 113, 39))
+    WIN.blit(draw_text, (WIDTH/2 - draw_text.get_width()/2, HEIGHT/2 - draw_text.get_height()/2))
+    pygame.display.update()
+    pygame.time.delay(4000)
+
 def movement(keys_pressed, Player, jumping, floor, jumpVel):
     global facing_left
     if keys_pressed[pygame.K_a] and Player.x - VEL > 0:  # left
@@ -179,71 +188,45 @@ def movement(keys_pressed, Player, jumping, floor, jumpVel):
         if Player.y + Player.height < HEIGHT - floor.height:
             Player.y += VEL
 
-# ------------------------------------------MAIN MENU AND OPTIONS LOOP---------------------------------------------------------------
-#global click
+def mute_music():
+    global muted
+    if muted:
+        pygame.mixer.music.set_volume(1.0)
+    else:
+        pygame.mixer.music.set_volume(0.0)
+    muted = not muted
 
-def options():
-    running = True
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-
-        WIN.fill((176, 245, 244))
-        mute_button = pygame.Rect(WIDTH//2 - 100, 300, 200, 50)
-        pygame.draw.rect(WIN, (235, 195, 52), mute_button)
-        mute_text = MAIN_MENU_FONT.render("Mute", True, (255, 255, 255))
-        WIN.blit(mute_text, (mute_button.x + (mute_button.width - mute_text.get_width()) // 2, mute_button.y + 
-                             (mute_button.height - mute_text.get_height()) // 2))  # Corrected line
-
-        pygame.display.update()
-        clock.tick(FPS)
-        
-
-#click = False
+# ------------------------------------------MAIN MENU LOOP---------------------------------------------------------------
 clock = pygame.time.Clock()
 
-#def mute_music(mute_button, mx, my, mute):
-    #mute = False
-    #pygame.mixer.music.play(-1)
-    #if mute_button.collidepoint((mx, my)):
-            #if click:
-              #  mute = True
-              #  pygame.mixer.music.pause()
-
-
-
 def main_menu():
+    #global muted
+    click = False
     while True:
-        pygame.mixer.music.pause()
         WIN.fill((176, 245, 244))
         menu_text = MAIN_MENU_FONT.render("Fly-Away Cat Main Menu", True, (255, 255, 255))
         WIN.blit(menu_text, (WIDTH//2 - menu_text.get_width()//2, 100))
         mx, my = pygame.mouse.get_pos()
 
-
+    
         button_1 = pygame.Rect(WIDTH//2 - 100, 300, 200, 50)
-        button_2 = pygame.Rect(WIDTH//2 - 100, 400, 200, 50)
+        button_2 = pygame.Rect(WIDTH//2 - 140, 400, 280, 50)
         
-        if button_1.collidepoint((mx, my)):
-            if click:
-                main()
-        if button_2.collidepoint((mx, my)):
-            if click:
-                options()
+        if button_1.collidepoint(mx, my) and click:
+            main()
 
-        pygame.draw.rect(WIN, (255, 0, 0), button_1)
-        pygame.draw.rect(WIN, (0, 255, 0), button_2)
+        if button_2.collidepoint(mx, my) and click:
+            mute_music()
+
+        pygame.draw.rect(WIN, (255, 194, 14), button_1)
+        pygame.draw.rect(WIN, (255, 194, 14), button_2)
 
         play_text = MAIN_MENU_FONT.render("Play", True, (255, 255, 255))
-        options_text = MAIN_MENU_FONT.render("Options", True, (255, 255, 255))
+        mute_text = MAIN_MENU_FONT.render("Mute" if not muted else "Unmute", True, (255, 255, 255))
         
-        WIN.blit(play_text, (button_1.x + (button_1.width - play_text.get_width()) // 2, button_1.y + (button_1.height - play_text.get_height()) // 2))  # Corrected line
-        WIN.blit(options_text, (button_2.x + (button_2.width - options_text.get_width()) // 2, button_2.y + (button_2.height - options_text.get_height()) // 2))  # Corrected line
-
+        WIN.blit(play_text, (button_1.x + (button_1.width - play_text.get_width()) // 2, button_1.y + (button_1.height - play_text.get_height()) // 2))  
+        WIN.blit(mute_text, (button_2.x + (button_2.width - mute_text.get_width()) // 2, button_2.y + (button_2.height - mute_text.get_height()) // 2)) 
+        
         click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -254,22 +237,22 @@ def main_menu():
 
         pygame.display.update()
         clock.tick(FPS)
-
-#def gameOver():
     
 # ----------------------------------------------MAIN GAME FUNCTION----------------------------------------------------------------------------
 
 def main():
-    pygame.mixer.music.play(-1)
-    Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
-    floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)  # floor base
-
+    global muted
     enemies = []
     points = []
     global player_health
     global score
     player_health = 3
-    score = 0
+    score = 0 
+
+    pygame.mixer.music.set_volume(0.0 if muted else 1.0)
+    Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
+    floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)  # floor base
+
 
     player_visible = True
 
@@ -322,6 +305,12 @@ def main():
             Player.y = floor.y - Player.height
 
         drawWindow(Player, floor, enemies, points)
+
+        if player_health == 0:
+            draw_score()
+            
+            
+            
 
 if __name__ == "__main__":
     main_menu()
