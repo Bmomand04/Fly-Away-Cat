@@ -1,5 +1,6 @@
 import pygame
 import os
+import sys
 import random
 import pygame.freetype
 
@@ -9,13 +10,14 @@ pygame.mixer.init()
 pygame.freetype.init()
 
 # screen size
-WIDTH, HEIGHT = 1920, 1020
+#WIDTH, HEIGHT = 400, 800
 
 pygame.init()
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 info = pygame.display.Info()
 screen_width, screen_height = info.current_w, info.current_h
-WIN = pygame.display.set_mode((screen_width - 10, screen_height - 50), pygame.RESIZABLE)
+#screen_width, screen_height = WIDTH, HEIGHT
+WIN = pygame.display.set_mode((screen_width - 5, screen_height - 50), pygame.RESIZABLE)
 
 # title
 pygame.display.set_caption("Fly-Away Cat!")
@@ -81,7 +83,7 @@ player_image_left = pygame.transform.scale(player_image_left_path, (PLAYER_WIDTH
 
 # background
 background_path = pygame.image.load(os.path.join('Background.png')).convert()
-BG = pygame.transform.scale(background_path, (WIDTH, HEIGHT))
+BG = pygame.transform.scale(background_path, (screen_width, screen_height))
 
 # enemy star
 neon_enemy_path = pygame.image.load(os.path.join('neon_enemy.png'))
@@ -95,8 +97,8 @@ point_star = pygame.transform.scale(point_star_path, (POINT_WIDTH, POINT_HEIGHT)
 
 class Enemy:
     def __init__(self):
-        self.x = WIDTH
-        self.y = random.randint(0, HEIGHT - PLAYER_HEIGHT)
+        self.x = screen_width
+        self.y = random.randint(0, screen_height - PLAYER_HEIGHT)
         self.vel = random.randint(5, 10)
 
     def move(self):
@@ -107,8 +109,8 @@ class Enemy:
 
 class pointStar:
     def __init__(self):
-        self.x = WIDTH
-        self.y = random.randint(0, HEIGHT - PLAYER_HEIGHT)
+        self.x = screen_width
+        self.y = random.randint(0, screen_height - PLAYER_HEIGHT)
         self.vel = random.randint(5, 10)
 
     def move(self):
@@ -155,7 +157,7 @@ def scoreUpdate(player, points, player_health):
 
 def draw_score():
     draw_text = GAME_OVER_FONT.render("Game Over! Score: " + str(score), True, (232, 113, 39))
-    WIN.blit(draw_text, (WIDTH/2 - draw_text.get_width()/2, HEIGHT/2 - draw_text.get_height()/2))
+    WIN.blit(draw_text, (screen_width/2 - draw_text.get_width()/2, screen_height/2 - draw_text.get_height()/2))
     pygame.display.update()
     pygame.time.delay(4000)
 
@@ -164,7 +166,7 @@ def movement(keys_pressed, Player, jumping, floor, jumpVel):
     if keys_pressed[pygame.K_a] and Player.x - VEL > 0:  # left
         Player.x -= VEL
         facing_left = True
-    if keys_pressed[pygame.K_d] and Player.x + VEL + Player.width < WIDTH:  # right
+    if keys_pressed[pygame.K_d] and Player.x + VEL + Player.width < screen_width:  # right
         Player.x += VEL
         facing_left = False
 
@@ -177,12 +179,12 @@ def movement(keys_pressed, Player, jumping, floor, jumpVel):
         jumpVel -= 1
 
         # Check if the player has landed
-        if Player.y + Player.height >= HEIGHT - floor.height:
+        if Player.y + Player.height >= screen_height - floor.height:
             jumping = False
-            Player.y = HEIGHT - floor.height - Player.height
+            Player.y = screen_height - floor.height - Player.height
     else:
         # Gravity effect when not jumping
-        if Player.y + Player.height < HEIGHT - floor.height:
+        if Player.y + Player.height < screen_height - floor.height:
             Player.y += VEL
 
 def mute_music():
@@ -202,12 +204,12 @@ def main_menu():
     while True:
         WIN.fill((176, 245, 244))
         menu_text = MAIN_MENU_FONT.render("Fly-Away Cat Main Menu", True, (255, 255, 255))
-        WIN.blit(menu_text, (WIDTH//2 - menu_text.get_width()//2, 100))
+        WIN.blit(menu_text, (screen_width//2 - menu_text.get_width()//2, 100))
         mx, my = pygame.mouse.get_pos()
 
     
-        button_1 = pygame.Rect(WIDTH//2 - 100, 300, 200, 50)
-        button_2 = pygame.Rect(WIDTH//2 - 140, 400, 280, 50)
+        button_1 = pygame.Rect(screen_width//2 - 100, 300, 200, 50)
+        button_2 = pygame.Rect(screen_width//2 - 140, 400, 280, 50)
         
         if button_1.collidepoint(mx, my) and click:
             main()
@@ -227,7 +229,7 @@ def main_menu():
         click = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
+                quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     click = True
@@ -248,8 +250,8 @@ def main():
     pygame.mixer.music.play(-1)
 
     pygame.mixer.music.set_volume(0.0 if muted else 1.0)
-    Player = pygame.Rect(10, HEIGHT - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
-    floor = pygame.Rect(0, HEIGHT - 50, WIDTH, 50)  # floor base
+    Player = pygame.Rect(10, screen_height - PLAYER_HEIGHT, PLAYER_WIDTH, PLAYER_HEIGHT)  # player base
+    floor = pygame.Rect(0, screen_height - 100, screen_width, 50)  # floor base
 
     player_visible = True
 
@@ -259,10 +261,11 @@ def main():
         for event in pygame.event.get():  # this whole block runs game in 60 fps and allows you to exit game
             if event.type == pygame.QUIT:
                 run = False
-                pygame.quit()
+                quit()
             elif event.type == timer_event_id:
                 player_visible = True
                 pygame.time.set_timer(timer_event_id, 0)
+            
 
         keys_pressed = pygame.key.get_pressed()  # to allow key binding
         movement(keys_pressed, Player, jumping, floor, jumpVel)  # calling on movement
